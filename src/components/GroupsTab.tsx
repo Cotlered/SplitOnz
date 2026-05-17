@@ -170,6 +170,13 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
   const receipts = getReceipts().filter(r => r.groupId === selectedGroupId);
 
+  const includedReceiptsForViewing = viewingSettlement 
+    ? getReceipts().filter(r => viewingSettlement.receiptIds.includes(r.id)) 
+    : [];
+  const resolvedViewingCurrency = viewingSettlement 
+    ? ((viewingSettlement as any).currency || (includedReceiptsForViewing.length > 0 ? includedReceiptsForViewing[0].currency : 'MYR'))
+    : 'MYR';
+
   return (
     <div className="tab-scroll-container" style={{ position: 'relative' }}>
       
@@ -491,9 +498,9 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
                             <span style={{ fontWeight: '800', color: 'var(--electric-mint)' }}>{tx.toName}</span>
                           </div>
                           <div style={{ fontWeight: '900', color: 'var(--text-primary)' }}>
-                            {((viewingSettlement as any).currency || 'MYR') === 'MYR' ? 'RM ' : ''}
+                            {resolvedViewingCurrency === 'MYR' ? 'RM ' : ''}
                             {tx.amount.toFixed(2)}
-                            {((viewingSettlement as any).currency || 'MYR') !== 'MYR' ? ` ${(viewingSettlement as any).currency}` : ''}
+                            {resolvedViewingCurrency !== 'MYR' ? ` ${resolvedViewingCurrency}` : ''}
                           </div>
                         </div>
                       ))
