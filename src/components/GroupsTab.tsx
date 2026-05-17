@@ -624,7 +624,7 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <img 
                 src="/logo.png" 
-                alt="OnzSplit Logo" 
+                alt="SplitOnz Logo" 
                 style={{ 
                   height: '52px', 
                   width: 'auto',
@@ -636,7 +636,7 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
                 }} 
               />
               <div>
-                <h2 className="title-large" style={{ fontSize: '24px', marginBottom: '-2px' }}>OnzSplit</h2>
+                <h2 className="title-large" style={{ fontSize: '24px', marginBottom: '-2px' }}>SplitOnz</h2>
                 <span className="title-small" style={{ fontSize: '11px' }}>Multi-User Trackers</span>
               </div>
             </div>
@@ -831,9 +831,16 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
                  </div>
 
                      {(() => {
-                        const todayStr = new Date().toLocaleDateString();
+
                         const rates = getCachedRates()?.rates || { MYR: 1 };
-                        const todayReceipts = getReceipts().filter(r => r.groupId === dashboardGroup.id && new Date(r.createdAt).toLocaleDateString() === todayStr);
+                        const today = new Date();
+                        const todayReceipts = getReceipts().filter(r => {
+                          if (r.groupId !== dashboardGroup.id) return false;
+                          const d = new Date(r.createdAt);
+                          return d.getFullYear() === today.getFullYear() &&
+                                 d.getMonth() === today.getMonth() &&
+                                 d.getDate() === today.getDate();
+                        });
                         
                         const spentTodayMYR = todayReceipts.reduce((sum, r) => {
                            const rate = rates[r.currency] || 1;

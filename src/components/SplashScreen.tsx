@@ -33,7 +33,7 @@ export const SplashScreen: React.FC = () => {
           <div className="splash-glow" />
           <img 
             src="/logo.png" 
-            alt="OnzSplit Logo" 
+            alt="SplitOnz Logo" 
             style={{ 
               height: '140px', 
               width: '140px', 

@@ -20,7 +20,12 @@ export interface MemberBalance {
  * Calculates the exact balance sheet for all members in a given group,
  * taking into account all group receipts, item assignments, tax surcharges, and split types.
  */
-export const calculateBalances = (group: Group, receipts: Receipt[], rates?: Record<string, number>): MemberBalance[] => {
+export const calculateBalances = (
+  group: Group, 
+  receipts: Receipt[], 
+  rates?: Record<string, number>,
+  targetCurrency: string = 'MYR'
+): MemberBalance[] => {
   const groupReceipts = receipts.filter(r => r.groupId === group.id && !r.settledId);
 
   // Initialize balances for all group members
@@ -30,9 +35,15 @@ export const calculateBalances = (group: Group, receipts: Receipt[], rates?: Rec
   });
 
   groupReceipts.forEach(receipt => {
-    // Conversion Logic: Amount in MYR = Foreign Amount / Rate
-    const rate = (receipt.currency === 'MYR' || !rates) ? 1 : (rates[receipt.currency] || 1);
-    const totalAmount = receipt.totalEntered / rate;
+    // Convert receipt total directly to target currency
+    let totalAmount = receipt.totalEntered;
+    if (receipt.currency !== targetCurrency) {
+      const rateToMYR = (receipt.currency === 'MYR' || !rates) ? 1 : (rates[receipt.currency] || 1);
+      const amountInMYR = receipt.totalEntered / rateToMYR;
+      const rateToTarget = (targetCurrency === 'MYR' || !rates) ? 1 : (rates[targetCurrency] || 1);
+      totalAmount = amountInMYR * rateToTarget;
+    }
+    
     const paidById = receipt.paidBy;
 
     // 1. Credit the payer with the full amount they spent
@@ -68,9 +79,15 @@ export const calculateBalances = (group: Group, receipts: Receipt[], rates?: Rec
     } else if (receipt.splitType === 'custom' && receipt.customSplits) {
       members.forEach(m => {
         const val = receipt.customSplits?.[m.id] || 0;
-        const valInMYR = val / rate;
+        let valInTarget = val;
+        if (receipt.currency !== targetCurrency) {
+          const rateToMYR = (receipt.currency === 'MYR' || !rates) ? 1 : (rates[receipt.currency] || 1);
+          const amountInMYR = val / rateToMYR;
+          const rateToTarget = (targetCurrency === 'MYR' || !rates) ? 1 : (rates[targetCurrency] || 1);
+          valInTarget = amountInMYR * rateToTarget;
+        }
         // If user entered subtotal prices, apply tax. Otherwise treat as final amount.
-        balances[m.id].owed += receipt.customIncludesTax ? valInMYR : (valInMYR * taxMultiplier);
+        balances[m.id].owed += receipt.customIncludesTax ? valInTarget : (valInTarget * taxMultiplier);
       });
     } else if (receipt.splitType === 'equal' && (receipt.forceGlobalEqual || !hasItemAssignments)) {
       // Pure global equal split (forced by user OR no items are assigned)

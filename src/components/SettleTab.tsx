@@ -46,33 +46,35 @@ export const SettleTab: React.FC<SettleTabProps> = ({
     if (cached) setRates(cached.rates);
   }, [selectedGroupId]);
 
-  // Recalculate balances and transactions whenever active group or receipts change
+  // 1. Auto-detect view currency once when group changes
   useEffect(() => {
     if (selectedGroup) {
       const allReceipts = getReceipts();
       const activeReceipts = allReceipts.filter(r => r.groupId === selectedGroup.id && !r.settledId);
-      
-      // Auto-detect view currency from active receipts to prevent MYR confusion
       if (activeReceipts.length > 0) {
         const primaryCurrency = activeReceipts[0].currency;
-        if (primaryCurrency && primaryCurrency !== viewCurrency) {
+        if (primaryCurrency) {
           setViewCurrency(primaryCurrency);
         }
       } else {
         setViewCurrency('MYR');
       }
+      setSettledTransactions([]);
+    }
+  }, [selectedGroup]);
 
-      const groupBalances = calculateBalances(selectedGroup, allReceipts, rates);
+  // 2. Recalculate balances and transactions in the active viewCurrency
+  useEffect(() => {
+    if (selectedGroup) {
+      const allReceipts = getReceipts();
+      const groupBalances = calculateBalances(selectedGroup, allReceipts, rates, viewCurrency);
       setBalances(groupBalances);
 
       const settings = getSettings();
       const optimizedTrans = runOnzAlgorithm(groupBalances, settings.roundingMode);
       setTransactions(optimizedTrans);
-      
-      // Reset individual settlements when group changes
-      setSettledTransactions([]);
     }
-  }, [selectedGroup]);
+  }, [selectedGroup, viewCurrency, rates]);
 
 
 
@@ -293,13 +295,13 @@ export const SettleTab: React.FC<SettleTabProps> = ({
                         {isMe && <span style={{ fontSize: '10px', backgroundColor: 'var(--electric-mint)', color: 'var(--charcoal-black)', padding: '1px 4px', borderRadius: '4px', fontWeight: '800' }}>YOU</span>}
                       </div>
                       <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                        Spent: {viewCurrency === 'MYR' ? 'RM ' : ''}{((b.paid * (viewCurrency === 'MYR' ? 1 : (rates[viewCurrency] || 1)))).toFixed(2)}{viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''} | 
-                        Share: {viewCurrency === 'MYR' ? 'RM ' : ''}{((b.owed * (viewCurrency === 'MYR' ? 1 : (rates[viewCurrency] || 1)))).toFixed(2)}{viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''}
+                        Spent: {viewCurrency === 'MYR' ? 'RM ' : ''}{b.paid.toFixed(2)}{viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''} | 
+                        Share: {viewCurrency === 'MYR' ? 'RM ' : ''}{b.owed.toFixed(2)}{viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''}
                       </div>
                     </div>
                     <div style={{ fontWeight: '800', fontSize: '14px', color: b.net > 0.01 ? 'var(--electric-mint)' : b.net < -0.01 ? 'var(--accent-pink)' : 'var(--text-secondary)' }}>
                       {viewCurrency === 'MYR' ? 'RM ' : ''}
-                      {b.net > 0.01 ? `+${(b.net * (viewCurrency === 'MYR' ? 1 : (rates[viewCurrency] || 1))).toFixed(2)}` : (b.net * (viewCurrency === 'MYR' ? 1 : (rates[viewCurrency] || 1))).toFixed(2)}
+                      {b.net > 0.01 ? `+${b.net.toFixed(2)}` : b.net.toFixed(2)}
                       {viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''}
                     </div>
                   </div>
@@ -335,7 +337,7 @@ export const SettleTab: React.FC<SettleTabProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ fontWeight: '800', fontSize: '14px' }}>
                           {viewCurrency === 'MYR' ? 'RM ' : ''}
-                          {(tx.amount * (viewCurrency === 'MYR' ? 1 : (rates[viewCurrency] || 1))).toFixed(2)}
+                          {tx.amount.toFixed(2)}
                           {viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''}
                         </div>
                         <button className="btn-primary" disabled={isSettled} style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '11px' }} onClick={() => handleSettleTransaction(idx, tx)}>
