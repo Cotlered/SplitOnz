@@ -26,6 +26,7 @@ export const calculateBalances = (
   rates?: Record<string, number>,
   targetCurrency: string = 'MYR'
 ): MemberBalance[] => {
+  if (!group || !group.members || group.members.length === 0) return [];
   const groupReceipts = receipts.filter(r => r.groupId === group.id && !r.settledId);
 
   // Initialize balances for all group members
@@ -77,18 +78,56 @@ export const calculateBalances = (
         balances[m.id].owed += (percent / 100) * totalAmount;
       });
     } else if (receipt.splitType === 'custom' && receipt.customSplits) {
-      members.forEach(m => {
-        const val = receipt.customSplits?.[m.id] || 0;
-        let valInTarget = val;
+      if (receipt.customIncludesTax) {
+        members.forEach(m => {
+          const val = receipt.customSplits?.[m.id] || 0;
+          let valInTarget = val;
+          if (receipt.currency !== targetCurrency) {
+            const rateToMYR = (receipt.currency === 'MYR' || !rates) ? 1 : (rates[receipt.currency] || 1);
+            const amountInMYR = val / rateToMYR;
+            const rateToTarget = (targetCurrency === 'MYR' || !rates) ? 1 : (rates[targetCurrency] || 1);
+            valInTarget = amountInMYR * rateToTarget;
+          }
+          balances[m.id].owed += valInTarget;
+        });
+      } else {
+        // Pre-tax custom splits: apply tax multiplier and allocate extra charges (flat tax & rounding) proportionally
+        const extraChargesInReceiptCurrency = (receipt.flatTax || 0) + (receipt.roundingAdjustment || 0);
+        let extraChargesInTarget = extraChargesInReceiptCurrency;
         if (receipt.currency !== targetCurrency) {
           const rateToMYR = (receipt.currency === 'MYR' || !rates) ? 1 : (rates[receipt.currency] || 1);
-          const amountInMYR = val / rateToMYR;
+          const amountInMYR = extraChargesInReceiptCurrency / rateToMYR;
           const rateToTarget = (targetCurrency === 'MYR' || !rates) ? 1 : (rates[targetCurrency] || 1);
-          valInTarget = amountInMYR * rateToTarget;
+          extraChargesInTarget = amountInMYR * rateToTarget;
         }
-        // If user entered subtotal prices, apply tax. Otherwise treat as final amount.
-        balances[m.id].owed += receipt.customIncludesTax ? valInTarget : (valInTarget * taxMultiplier);
-      });
+
+        let rawSumInTarget = 0;
+        members.forEach(m => {
+          const val = receipt.customSplits?.[m.id] || 0;
+          let valInTarget = val;
+          if (receipt.currency !== targetCurrency) {
+            const rateToMYR = (receipt.currency === 'MYR' || !rates) ? 1 : (rates[receipt.currency] || 1);
+            const amountInMYR = val / rateToMYR;
+            const rateToTarget = (targetCurrency === 'MYR' || !rates) ? 1 : (rates[targetCurrency] || 1);
+            valInTarget = amountInMYR * rateToTarget;
+          }
+          rawSumInTarget += valInTarget;
+        });
+
+        members.forEach(m => {
+          const val = receipt.customSplits?.[m.id] || 0;
+          let valInTarget = val;
+          if (receipt.currency !== targetCurrency) {
+            const rateToMYR = (receipt.currency === 'MYR' || !rates) ? 1 : (rates[receipt.currency] || 1);
+            const amountInMYR = val / rateToMYR;
+            const rateToTarget = (targetCurrency === 'MYR' || !rates) ? 1 : (rates[targetCurrency] || 1);
+            valInTarget = amountInMYR * rateToTarget;
+          }
+
+          const proportionalExtra = rawSumInTarget > 0 ? (valInTarget / rawSumInTarget) * extraChargesInTarget : 0;
+          balances[m.id].owed += (valInTarget * taxMultiplier) + proportionalExtra;
+        });
+      }
     } else if (receipt.splitType === 'equal' && (receipt.forceGlobalEqual || !hasItemAssignments)) {
       // Pure global equal split (forced by user OR no items are assigned)
       const centShare = Math.floor((totalAmount / members.length) * 100) / 100;
@@ -108,16 +147,17 @@ export const calculateBalances = (
 
       let itemShareBaseSum = 0;
       itemsList.forEach(item => {
-        const assignees = item.assignedTo || [];
-        if (assignees.length > 0) {
-          const perAssigneeShare = item.price / assignees.length;
-          itemShareBaseSum += item.price;
-          assignees.forEach(memberId => {
-            if (itemShareBase[memberId] !== undefined) {
-              itemShareBase[memberId] += perAssigneeShare;
-            }
-          });
+        let assignees = item.assignedTo || [];
+        if (assignees.length === 0) {
+          assignees = members.map(m => m.id);
         }
+        const perAssigneeShare = item.price / assignees.length;
+        itemShareBaseSum += item.price;
+        assignees.forEach(memberId => {
+          if (itemShareBase[memberId] !== undefined) {
+            itemShareBase[memberId] += perAssigneeShare;
+          }
+        });
       });
 
       // If nothing is assigned (edge case), fallback to equal
@@ -243,8 +283,8 @@ export const runOnzAlgorithm = (
     }
 
     // Update balances
-    debtor.balance += finalAmount;
-    creditor.balance -= finalAmount;
+    debtor.balance += finalAmount === 0 ? transferAmount : finalAmount;
+    creditor.balance -= finalAmount === 0 ? transferAmount : finalAmount;
 
     // Filter out settled participants
     debtors = debtors.filter(d => d.balance < -0.01);

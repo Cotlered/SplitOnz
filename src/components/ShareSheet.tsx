@@ -17,7 +17,6 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({
   transactions, 
   sheetRef, 
   viewCurrency, 
-  rates,
   isLightTheme = false 
 }) => {
   const date = new Date().toLocaleDateString('en-MY', { 
@@ -236,9 +235,12 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({
                 marginLeft: '12px'
               }}>
                 <span style={{ fontSize: '11px', opacity: 0.7, marginRight: '2px', fontWeight: '700' }}>
-                  {viewCurrency === 'MYR' ? 'RM' : ''}
+                  {viewCurrency === 'MYR' ? 'RM ' : ''}
                 </span>
-                {(tx.amount * (viewCurrency === 'MYR' ? 1 : (rates[viewCurrency] || 1))).toFixed(2)}
+                {tx.amount.toFixed(2)}
+                <span style={{ fontSize: '11px', opacity: 0.7, marginLeft: '2px', fontWeight: '700' }}>
+                  {viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''}
+                </span>
               </div>
             </div>
           ))}

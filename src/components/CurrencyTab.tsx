@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calculator, Search, X, ArrowRightLeft, Globe, MapPin, RefreshCw, AlertCircle } from 'lucide-react';
-import { getCachedRates, saveCachedRates } from '../utils/storage';
+import { getCachedRates, saveCachedRates, getSettings, saveSettings } from '../utils/storage';
 import { getCurrencyInfo } from '../utils/currency';
 import { CurrencySelect } from './CurrencySelect';
 import { toast } from '../utils/toast';
@@ -62,6 +62,9 @@ export const CurrencyTab: React.FC = () => {
 
   useEffect(() => {
     fetchRates();
+    const settings = getSettings();
+    setUseStreetRates(!!settings.useStreetRates);
+    setCustomRatesInput(settings.customRatesInput || {});
   }, []);
 
 
@@ -111,8 +114,25 @@ export const CurrencyTab: React.FC = () => {
     return ((amt / sourceRate) * baseRate).toFixed(2);
   };
 
+  const handleStreetRateToggle = (enabled: boolean) => {
+    setUseStreetRates(enabled);
+    const settings = getSettings();
+    saveSettings({
+      ...settings,
+      useStreetRates: enabled
+    });
+  };
+
   const handleCustomRateChange = (currency: string, value: string) => {
-    setCustomRatesInput(prev => ({ ...prev, [currency]: value }));
+    setCustomRatesInput(prev => {
+      const updated = { ...prev, [currency]: value };
+      const settings = getSettings();
+      saveSettings({
+        ...settings,
+        customRatesInput: updated
+      });
+      return updated;
+    });
   };
 
   // Filter global rates for modal
@@ -273,7 +293,7 @@ export const CurrencyTab: React.FC = () => {
                 if (!useStreetRates) {
                   setShowStreetRateConfirm(true);
                 } else {
-                  setUseStreetRates(false);
+                  handleStreetRateToggle(false);
                 }
               }} 
             />
@@ -450,7 +470,7 @@ export const CurrencyTab: React.FC = () => {
                 type="button" 
                 className="btn-primary" 
                 onClick={() => {
-                  setUseStreetRates(true);
+                  handleStreetRateToggle(true);
                   setShowStreetRateConfirm(false);
                 }}
                 style={{ flex: 1, height: '48px', borderRadius: '14px', background: 'var(--accent-gold)', border: 'none', color: 'var(--charcoal-black)', fontWeight: '800', boxShadow: '0 8px 20px rgba(245, 158, 11, 0.2)' }}

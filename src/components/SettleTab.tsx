@@ -126,6 +126,7 @@ export const SettleTab: React.FC<SettleTabProps> = ({
         groupId: selectedGroup.id,
         date: new Date().toISOString(),
         totalMYR,
+        currency: viewCurrency,
         receiptIds: groupReceipts.map(r => r.id),
         transactions: transactions // This is the state variable containing the optimized transfers
       };
@@ -217,30 +218,40 @@ export const SettleTab: React.FC<SettleTabProps> = ({
         )}
       </div>
 
-      <div>
-        <label style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>SELECT GENG</label>
-        <select
-          className="input-field"
-          value={selectedGroupId || ''}
-          onChange={(e) => setSelectedGroupId(e.target.value)}
-          style={{ padding: '8px 12px' }}
-        >
-          {groups.map(g => (
-            <option key={g.id} value={g.id}>{g.name}</option>
-          ))}
-        </select>
-      </div>
-
-      {celebrateGroupId && (
-        <div style={{ padding: '24px', borderRadius: '24px', background: 'var(--electric-mint-dim)', border: '2px solid var(--electric-mint)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-          <div style={{ fontSize: '48px' }}>🎉</div>
-          <h3 style={{ fontWeight: '800', fontSize: '20px', color: 'var(--electric-mint)' }}>All settled "Onz!"</h3>
-          <p style={{ fontSize: '13px', color: 'var(--text-primary)', maxWidth: '240px' }}>No more debts! Go get another teh tarik! ☕</p>
+      {groups.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--charcoal-deep)', borderRadius: '24px', border: '1.5px dashed var(--charcoal-border)', marginTop: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <div style={{ fontSize: '48px' }}>☕</div>
+          <h3 style={{ fontWeight: '800', fontSize: '18px', color: 'var(--text-primary)' }}>No active groups found</h3>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '260px' }}>Create a new group and add receipts first to start settling bills!</p>
+          <button className="btn-primary" onClick={() => { if (onNavigate) onNavigate('groups'); }} style={{ marginTop: '8px', padding: '10px 20px', borderRadius: '12px', width: 'auto' }}>Go to Groups</button>
         </div>
-      )}
+      ) : (
+        <>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>SELECT GENG</label>
+            <select
+              className="input-field"
+              value={selectedGroupId || ''}
+              onChange={(e) => setSelectedGroupId(e.target.value)}
+              style={{ padding: '8px 12px' }}
+            >
+              <option value="" disabled>-- Select a Geng --</option>
+              {groups.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
 
-      {!celebrateGroupId && selectedGroup && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {celebrateGroupId && (
+            <div style={{ padding: '24px', borderRadius: '24px', background: 'var(--electric-mint-dim)', border: '2px solid var(--electric-mint)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{ fontSize: '48px' }}>🎉</div>
+              <h3 style={{ fontWeight: '800', fontSize: '20px', color: 'var(--electric-mint)' }}>All settled "Onz!"</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-primary)', maxWidth: '240px' }}>No more debts! Go get another teh tarik! ☕</p>
+            </div>
+          )}
+
+          {!celebrateGroupId && selectedGroup && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
           
           {/* CURRENCY TOGGLE */}
           {(() => {
@@ -350,9 +361,11 @@ export const SettleTab: React.FC<SettleTabProps> = ({
                 <button className="btn-secondary" style={{ width: '100%', marginTop: '6px' }} onClick={() => setShowSettleConfirm(true)}>Settle Entire Geng</button>
               </div>
             )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </>
+    )}
 
       {/* Settle Entire Geng Confirmation Modal */}
       {showSettleConfirm && selectedGroup && (

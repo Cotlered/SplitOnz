@@ -51,10 +51,12 @@ export const OcrTab: React.FC<OcrTabProps> = ({
     if (cached) setRates(cached.rates);
 
     if (selectedGroup && selectedGroup.members.length > 0) {
-      if (!paidByMemberId) {
-        const settings = getSettings();
-        const activeUser = settings.userName || '';
-        const meUser = selectedGroup.members.find(m => m.name.toLowerCase() === activeUser.toLowerCase());
+      const settings = getSettings();
+      const activeUser = settings.userName || '';
+      const meUser = selectedGroup.members.find(m => m.name.toLowerCase() === activeUser.toLowerCase());
+      const isMemberOfCurrentGroup = selectedGroup.members.some(m => m.id === paidByMemberId);
+      
+      if (!paidByMemberId || !isMemberOfCurrentGroup) {
         setPaidByMemberId(meUser ? meUser.id : selectedGroup.members[0].id);
       }
       
@@ -303,9 +305,12 @@ Return ONLY raw JSON.`
            return;
        }
     } else if (splitType === 'custom') {
-       const sum = Object.values(customSplits).reduce((a, b) => a + (b || 0), 0);
-       if (Math.abs(sum - finalTotal) > 0.01) {
-           toast(`Custom amounts must equal total (${finalTotal.toFixed(2)}). Current: ${sum.toFixed(2)}`, 'error');
+       const taxMultiplier = 1 + (taxServiceCharge ? 0.1 : 0) + (taxSst ? 0.06 : 0);
+       const rawSum = Object.values(customSplits).reduce((a, b) => a + (b || 0), 0);
+       const extraCharges = (Number(flatTax) || 0) + roundingAdjustment;
+       const totalAssigned = customIncludesTax ? rawSum : (rawSum * taxMultiplier + extraCharges);
+       if (Math.abs(totalAssigned - finalTotal) > 0.05) {
+           toast(`Custom amounts must equal total (${finalTotal.toFixed(2)}). Current: ${totalAssigned.toFixed(2)}`, 'error');
            return;
        }
     }
@@ -489,15 +494,24 @@ Return ONLY raw JSON.`
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--accent-gold)', textTransform: 'uppercase' }}>Flat Tax</label>
-                      <input type="number" step="0.01" className="input-field" style={{ borderColor: 'rgba(255, 193, 7, 0.4)' }} value={flatTax || ''} onChange={(e) => setFlatTax(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="0.00" />
+                      <input type="number" step="0.01" className="input-field" style={{ borderColor: 'rgba(255, 193, 7, 0.4)' }} value={flatTax || ''} onChange={(e) => {
+                        const parsed = parseFloat(e.target.value);
+                        setFlatTax(e.target.value === '' || isNaN(parsed) ? '' : parsed);
+                      }} placeholder="0.00" />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Rounding</label>
-                      <input type="number" step="0.01" className="input-field" value={roundingAdjustment || ''} onChange={(e) => setRoundingAdjustment(e.target.value === '' ? 0 : parseFloat(e.target.value))} placeholder="0.00" />
+                      <input type="number" step="0.01" className="input-field" value={roundingAdjustment || ''} onChange={(e) => {
+                        const parsed = parseFloat(e.target.value);
+                        setRoundingAdjustment(e.target.value === '' || isNaN(parsed) ? 0 : parsed);
+                      }} placeholder="0.00" />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total</label>
-                      <input type="number" step="0.01" className="input-field" value={receiptTotal} onChange={(e) => setReceiptTotal(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                      <input type="number" step="0.01" className="input-field" value={receiptTotal} onChange={(e) => {
+                        const parsed = parseFloat(e.target.value);
+                        setReceiptTotal(e.target.value === '' || isNaN(parsed) ? '' : parsed);
+                      }} />
                     </div>
                   </div>
                 </div>
@@ -777,7 +791,7 @@ Return ONLY raw JSON.`
                       <span style={{ fontWeight: '700' }}>{m.name}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <input type="number" className="input-field" style={{ width: '80px', height: '36px', textAlign: 'right' }} value={customSplits[m.id] === 0 ? '' : (customSplits[m.id] ?? '')} onChange={(e) => setCustomSplits({ ...customSplits, [m.id]: parseFloat(e.target.value) || 0 })} />
-                        <span style={{ fontSize: '12px', fontWeight: 800 }}>{currency}</span>
+                        <span style={{ fontSize: '12px', fontWeight: 800 }}>%</span>
                       </div>
                     </div>
                   ))}

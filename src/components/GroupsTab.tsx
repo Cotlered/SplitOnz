@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Trash2, ArrowLeft, UserPlus, Sparkles, Image as ImageIcon, CheckCircle, X, ArrowRight, BarChart3, Target, TrendingUp, Coins, Share2 } from 'lucide-react';
 import type { Group, Member, Receipt, Settlement } from '../utils/storage';
-import { getGroups, saveGroups, getRecentMembers, getReceipts, getSettlements, getCachedRates, getSettings } from '../utils/storage';
+import { getGroups, saveGroups, getRecentMembers, getReceipts, getSettlements, getCachedRates, getSettings, saveReceipts, saveSettlements } from '../utils/storage';
 import { calculateBalances } from '../utils/onzAlgorithm';
 import { playSound } from '../utils/sounds';
 import { getRandomQuote } from '../utils/quotes';
+import { toast } from '../utils/toast';
 
 interface GroupsTabProps {
   onSelectGroup?: (groupId: string) => void;
@@ -92,10 +93,15 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
   };
 
   const handleAddTempMember = () => {
-    if (newMemberName.trim() && !tempMembers.includes(newMemberName.trim())) {
-      setTempMembers([...tempMembers, newMemberName.trim()]);
-      setNewMemberName('');
+    const name = newMemberName.trim();
+    if (!name) return;
+    
+    if (tempMembers.some(m => m.toLowerCase() === name.toLowerCase())) {
+      toast('Member name already added!', 'error');
+      return;
     }
+    setTempMembers([...tempMembers, name]);
+    setNewMemberName('');
   };
 
   const handleToggleRecentMember = (name: string) => {
@@ -111,10 +117,21 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
       setIsAddingToExisting(false);
       return;
     }
+    const name = editingMemberName.trim();
     const currentGroups = getGroups();
+    const targetGroup = currentGroups.find(g => g.id === selectedGroupId);
+    
+    if (targetGroup) {
+      const exists = targetGroup.members.some(m => m.name.toLowerCase() === name.toLowerCase());
+      if (exists) {
+        toast(`"${name}" is already in this geng!`, 'error');
+        return;
+      }
+    }
+
     const updated = currentGroups.map(g => {
       if (g.id === selectedGroupId) {
-        const newMember = { id: `m-${Date.now()}`, name: editingMemberName.trim() };
+        const newMember = { id: `m-${Date.now()}`, name };
         return { ...g, members: [...g.members, newMember] };
       }
       return g;
@@ -135,6 +152,14 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
     const updated = getGroups().filter(g => g.id !== id);
     saveGroups(updated);
     setGroups(updated);
+    
+    // Clear associated receipts and settlements to prevent storage leaks
+    const remainingReceipts = getReceipts().filter(r => r.groupId !== id);
+    saveReceipts(remainingReceipts);
+    
+    const remainingSettlements = getSettlements().filter(s => s.groupId !== id);
+    saveSettlements(remainingSettlements);
+
     if (selectedGroupId === id) {
       setSelectedGroupId(null);
     }
@@ -466,7 +491,9 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
                             <span style={{ fontWeight: '800', color: 'var(--electric-mint)' }}>{tx.toName}</span>
                           </div>
                           <div style={{ fontWeight: '900', color: 'var(--text-primary)' }}>
-                            RM {tx.amount.toFixed(2)}
+                            {((viewingSettlement as any).currency || 'MYR') === 'MYR' ? 'RM ' : ''}
+                            {tx.amount.toFixed(2)}
+                            {((viewingSettlement as any).currency || 'MYR') !== 'MYR' ? ` ${(viewingSettlement as any).currency}` : ''}
                           </div>
                         </div>
                       ))

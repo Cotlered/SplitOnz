@@ -73,6 +73,8 @@ export interface AppSettings {
   languageTone: 'geng' | 'standard';
   soundEffectsEnabled?: boolean;
   accentColor?: 'mint' | 'pink' | 'gold' | 'blue' | 'purple';
+  useStreetRates?: boolean;
+  customRatesInput?: Record<string, string>;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -84,6 +86,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   languageTone: 'geng',
   soundEffectsEnabled: true,
   accentColor: 'mint',
+  useStreetRates: false,
+  customRatesInput: {},
 };
 
 // Seed mock data for a jaw-dropping out-of-the-box experience
@@ -208,10 +212,25 @@ export const getCachedRates = (): CachedRates | null => {
   const data = localStorage.getItem(STORAGE_KEYS.RATES);
   if (!data) return null;
   const parsed = JSON.parse(data) as CachedRates;
-  // Expire after 24 hours
-  if (Date.now() - parsed.timestamp > 24 * 60 * 60 * 1000) {
-    return null;
+
+  // Merge street rates if enabled
+  const settings = getSettings();
+  if (settings.useStreetRates && settings.customRatesInput) {
+    const mergedRates = { ...parsed.rates };
+    const customRates = settings.customRatesInput;
+    Object.keys(customRates).forEach(curr => {
+      const val = parseFloat(customRates[curr]);
+      if (!isNaN(val) && val > 0) {
+        mergedRates[curr] = val;
+      }
+    });
+    return {
+      rates: mergedRates,
+      timestamp: parsed.timestamp
+    };
   }
+
+  // Return stale cached rates as a safe offline fallback instead of returning null and breaking conversions.
   return parsed;
 };
 
