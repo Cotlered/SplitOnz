@@ -50,6 +50,7 @@ export interface Settlement {
   groupId: string;
   date: string;
   totalMYR: number;
+  currency?: string;
   receiptIds: string[];
   transactions: any[];
 }
@@ -158,6 +159,35 @@ export const initializeStorage = () => {
       GBP: 0.17
     };
     localStorage.setItem(STORAGE_KEYS.RATES, JSON.stringify({ rates: defaultRates, timestamp: Date.now() }));
+  }
+
+  // Migrate/Amend pre-existing settlements inside LocalStorage to prevent missing currency bugs
+  try {
+    const settlementsData = localStorage.getItem(STORAGE_KEYS.SETTLEMENTS);
+    const receiptsData = localStorage.getItem(STORAGE_KEYS.RECEIPTS);
+    if (settlementsData && receiptsData) {
+      const parsedSettlements = JSON.parse(settlementsData) as any[];
+      const parsedReceipts = JSON.parse(receiptsData) as any[];
+      let migrated = false;
+      
+      const updatedSettlements = parsedSettlements.map(s => {
+        if (!s.currency) {
+          // Find first receipt included in this settlement
+          const match = parsedReceipts.find(r => s.receiptIds.includes(r.id));
+          if (match && match.currency) {
+            migrated = true;
+            return { ...s, currency: match.currency };
+          }
+        }
+        return s;
+      });
+      
+      if (migrated) {
+        localStorage.setItem(STORAGE_KEYS.SETTLEMENTS, JSON.stringify(updatedSettlements));
+      }
+    }
+  } catch (e) {
+    console.error('Settlement currency migration failed:', e);
   }
 };
 
