@@ -139,8 +139,8 @@ export const CurrencyTab: React.FC = () => {
   const allCurrencies = Object.keys(rates).sort();
   const filteredCurrencies = allCurrencies.filter(c => {
     const info = getCurrencyInfo(c);
-    const search = searchQuery.toLowerCase();
-    return c.toLowerCase().includes(search) || info.name.toLowerCase().includes(search);
+    const search = String(searchQuery || '').toLowerCase();
+    return String(c || '').toLowerCase().includes(search) || String(info.name || '').toLowerCase().includes(search);
   });
 
   return (

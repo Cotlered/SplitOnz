@@ -32,7 +32,7 @@ export const calculateBalances = (
   // Initialize balances for all group members
   const balances: Record<string, { paid: number; owed: number }> = {};
   group.members.forEach(m => {
-    balances[m.id] = { paid: 0, owed: 0 };
+    if (m && m.id) balances[m.id] = { paid: 0, owed: 0 };
   });
 
   groupReceipts.forEach(receipt => {
@@ -74,12 +74,14 @@ export const calculateBalances = (
 
     if (receipt.splitType === 'percentage' && receipt.customSplits) {
       members.forEach(m => {
+        if (!m || !m.id || !balances[m.id]) return;
         const percent = receipt.customSplits?.[m.id] || 0;
         balances[m.id].owed += (percent / 100) * totalAmount;
       });
     } else if (receipt.splitType === 'custom' && receipt.customSplits) {
       if (receipt.customIncludesTax) {
         members.forEach(m => {
+          if (!m || !m.id || !balances[m.id]) return;
           const val = receipt.customSplits?.[m.id] || 0;
           let valInTarget = val;
           if (receipt.currency !== targetCurrency) {
@@ -103,6 +105,7 @@ export const calculateBalances = (
 
         let rawSumInTarget = 0;
         members.forEach(m => {
+          if (!m || !m.id) return;
           const val = receipt.customSplits?.[m.id] || 0;
           let valInTarget = val;
           if (receipt.currency !== targetCurrency) {
@@ -115,6 +118,7 @@ export const calculateBalances = (
         });
 
         members.forEach(m => {
+          if (!m || !m.id || !balances[m.id]) return;
           const val = receipt.customSplits?.[m.id] || 0;
           let valInTarget = val;
           if (receipt.currency !== targetCurrency) {
@@ -133,6 +137,7 @@ export const calculateBalances = (
       const centShare = Math.floor((totalAmount / members.length) * 100) / 100;
       let allocatedSoFar = 0;
       members.forEach((m, idx) => {
+        if (!m || !m.id || !balances[m.id]) return;
         if (idx === members.length - 1) {
           balances[m.id].owed += Number((totalAmount - allocatedSoFar).toFixed(2));
         } else {
@@ -143,7 +148,7 @@ export const calculateBalances = (
     } else {
       // Itemized split (default if 'equal' with assignments, or fallback)
       const itemShareBase: Record<string, number> = {};
-      members.forEach(m => { itemShareBase[m.id] = 0; });
+      members.forEach(m => { if (m && m.id) itemShareBase[m.id] = 0; });
 
       let itemShareBaseSum = 0;
       itemsList.forEach(item => {
@@ -165,6 +170,7 @@ export const calculateBalances = (
         const centShare = Math.floor((totalAmount / members.length) * 100) / 100;
         let allocatedSoFar = 0;
         members.forEach((m, idx) => {
+          if (!m || !m.id || !balances[m.id]) return;
           if (idx === members.length - 1) {
             balances[m.id].owed += Number((totalAmount - allocatedSoFar).toFixed(2));
           } else {
@@ -182,6 +188,7 @@ export const calculateBalances = (
         let allocatedSoFar = 0;
 
         participatingMemberIds.forEach((mId, idx) => {
+          if (!balances[mId]) return;
           if (idx === participatingMemberIds.length - 1) {
             balances[mId].owed += Number((totalAmount - allocatedSoFar).toFixed(2));
           } else {
@@ -195,14 +202,14 @@ export const calculateBalances = (
   });
 
   // Map balances record back to a clean list of MemberBalance structures
-  return group.members.map(m => {
+  return group.members.filter(m => m && m.id).map(m => {
     const record = balances[m.id] || { paid: 0, owed: 0 };
     return {
       memberId: m.id,
-      name: m.name,
-      paid: Number(record.paid.toFixed(2)),
-      owed: Number(record.owed.toFixed(2)),
-      net: Number((record.paid - record.owed).toFixed(2)),
+      name: m.name || 'Unknown',
+      paid: Number((record.paid || 0).toFixed(2)),
+      owed: Number((record.owed || 0).toFixed(2)),
+      net: Number(((record.paid || 0) - (record.owed || 0)).toFixed(2)),
     };
   });
 };
@@ -251,7 +258,12 @@ export const runOnzAlgorithm = (
     .map(b => ({ id: b.memberId, name: b.name, balance: b.net })); // balance is positive
 
   // 2. Run greedy matching loop
+  let iterations = 0;
   while (debtors.length > 0 && creditors.length > 0) {
+    if (iterations++ > 100) {
+      console.error('runOnzAlgorithm emergency break!');
+      break;
+    }
     // Sort so largest absolute values are at index 0
     debtors.sort((a, b) => a.balance - b.balance); // More negative (e.g., -50 before -10)
     creditors.sort((a, b) => b.balance - a.balance); // More positive (e.g., 50 before 10)

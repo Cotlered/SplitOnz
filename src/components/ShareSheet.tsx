@@ -195,12 +195,12 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({
                   whiteSpace: 'nowrap',
                   paddingRight: '4px'
                 }}>
-                  {tx.fromName}
+                  {tx?.fromName || 'Unknown'}
                 </div>
                 
                 {/* ARROW - 10% */}
-                <div style={{ width: '10%', display: 'flex', justifyContent: 'center', alignItems: 'center', opacity: 0.4, flexShrink: 0 }}>
-                  <ArrowRight size={12} color={colors.textSecondary} />
+                <div style={{ width: '10%', display: 'flex', justifyContent: 'center', color: colors.textSecondary, opacity: 0.5 }}>
+                  <ArrowRight size={10} strokeWidth={3} />
                 </div>
                 
                 {/* TO NAME - 45% */}
@@ -215,7 +215,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({
                   whiteSpace: 'nowrap',
                   paddingLeft: '4px'
                 }}>
-                  {tx.toName}
+                  {tx?.toName || 'Unknown'}
                 </div>
               </div>
               
@@ -237,7 +237,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({
                 <span style={{ fontSize: '11px', opacity: 0.7, marginRight: '2px', fontWeight: '700' }}>
                   {viewCurrency === 'MYR' ? 'RM ' : ''}
                 </span>
-                {tx.amount.toFixed(2)}
+                {(tx?.amount || 0).toFixed(2)}
                 <span style={{ fontSize: '11px', opacity: 0.7, marginLeft: '2px', fontWeight: '700' }}>
                   {viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''}
                 </span>

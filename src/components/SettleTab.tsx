@@ -289,9 +289,9 @@ export const SettleTab: React.FC<SettleTabProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {balances.map(b => {
                 const activeUser = getSettings().userName || '';
-                const isMe = activeUser.toLowerCase() === b.name.toLowerCase();
+                const isMe = String(activeUser || '').toLowerCase() === String(b?.name || '').toLowerCase();
                 return (
-                  <div key={b.memberId} style={{ 
+                  <div key={b?.memberId || Math.random()} style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'space-between', 
@@ -302,17 +302,17 @@ export const SettleTab: React.FC<SettleTabProps> = ({
                   }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>{b.name}</span>
+                        <span style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>{b?.name || 'Unknown'}</span>
                         {isMe && <span style={{ fontSize: '10px', backgroundColor: 'var(--electric-mint)', color: 'var(--charcoal-black)', padding: '1px 4px', borderRadius: '4px', fontWeight: '800' }}>YOU</span>}
                       </div>
                       <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                        Spent: {viewCurrency === 'MYR' ? 'RM ' : ''}{b.paid.toFixed(2)}{viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''} | 
-                        Share: {viewCurrency === 'MYR' ? 'RM ' : ''}{b.owed.toFixed(2)}{viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''}
+                        Spent: {viewCurrency === 'MYR' ? 'RM ' : ''}{(b?.paid || 0).toFixed(2)}{viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''} | 
+                        Share: {viewCurrency === 'MYR' ? 'RM ' : ''}{(b?.owed || 0).toFixed(2)}{viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''}
                       </div>
                     </div>
-                    <div style={{ fontWeight: '800', fontSize: '14px', color: b.net > 0.01 ? 'var(--electric-mint)' : b.net < -0.01 ? 'var(--accent-pink)' : 'var(--text-secondary)' }}>
+                    <div style={{ fontWeight: '800', fontSize: '14px', color: (b?.net || 0) > 0.01 ? 'var(--electric-mint)' : (b?.net || 0) < -0.01 ? 'var(--accent-pink)' : 'var(--text-secondary)' }}>
                       {viewCurrency === 'MYR' ? 'RM ' : ''}
-                      {b.net > 0.01 ? `+${b.net.toFixed(2)}` : b.net.toFixed(2)}
+                      {(b?.net || 0) > 0.01 ? `+${(b?.net || 0).toFixed(2)}` : (b?.net || 0).toFixed(2)}
                       {viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''}
                     </div>
                   </div>
@@ -336,19 +336,19 @@ export const SettleTab: React.FC<SettleTabProps> = ({
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {transactions.map((tx, idx) => {
-                  const txId = `${tx.fromId}-${tx.toId}-${tx.amount}-${idx}`;
+                  const txId = `${tx?.fromId}-${tx?.toId}-${tx?.amount}-${idx}`;
                   const isSettled = settledTransactions.includes(txId);
                   return (
                     <div key={txId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', borderRadius: '12px', background: 'var(--charcoal-deep)', border: '1px solid var(--charcoal-border)', opacity: isSettled ? 0.4 : 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: '800', fontSize: '14px', color: 'var(--accent-pink)' }}>{tx.fromName}</span>
+                        <span style={{ fontWeight: '800', fontSize: '14px', color: 'var(--accent-pink)' }}>{tx?.fromName || 'Unknown'}</span>
                         <ArrowRight size={12} color="var(--text-secondary)" />
-                        <span style={{ fontWeight: '800', fontSize: '14px', color: 'var(--electric-mint)' }}>{tx.toName}</span>
+                        <span style={{ fontWeight: '800', fontSize: '14px', color: 'var(--electric-mint)' }}>{tx?.toName || 'Unknown'}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ fontWeight: '800', fontSize: '14px' }}>
                           {viewCurrency === 'MYR' ? 'RM ' : ''}
-                          {tx.amount.toFixed(2)}
+                          {(tx?.amount || 0).toFixed(2)}
                           {viewCurrency !== 'MYR' ? ` ${viewCurrency}` : ''}
                         </div>
                         <button className="btn-primary" disabled={isSettled} style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '11px' }} onClick={() => handleSettleTransaction(idx, tx)}>

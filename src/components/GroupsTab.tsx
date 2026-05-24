@@ -96,7 +96,7 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
     const name = newMemberName.trim();
     if (!name) return;
     
-    if (tempMembers.some(m => m.toLowerCase() === name.toLowerCase())) {
+    if (tempMembers.some(m => String(m || '').toLowerCase() === String(name || '').toLowerCase())) {
       toast('Member name already added!', 'error');
       return;
     }
@@ -122,7 +122,7 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
     const targetGroup = currentGroups.find(g => g.id === selectedGroupId);
     
     if (targetGroup) {
-      const exists = targetGroup.members.some(m => m.name.toLowerCase() === name.toLowerCase());
+      const exists = targetGroup.members.some(m => String(m.name || '').toLowerCase() === String(name || '').toLowerCase());
       if (exists) {
         toast(`"${name}" is already in this geng!`, 'error');
         return;

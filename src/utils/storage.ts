@@ -194,7 +194,7 @@ export const initializeStorage = () => {
 export const getGroups = (): Group[] => {
   initializeStorage();
   const data = localStorage.getItem(STORAGE_KEYS.GROUPS);
-  return data ? JSON.parse(data) : [];
+  try { const parsed = data ? JSON.parse(data) : []; return Array.isArray(parsed) ? parsed.filter(Boolean) : []; } catch(e) { return []; }
 };
 
 export const saveGroups = (groups: Group[]) => {
@@ -211,7 +211,7 @@ export const saveGroups = (groups: Group[]) => {
 export const getReceipts = (): Receipt[] => {
   initializeStorage();
   const data = localStorage.getItem(STORAGE_KEYS.RECEIPTS);
-  return data ? JSON.parse(data) : [];
+  try { const parsed = data ? JSON.parse(data) : []; return Array.isArray(parsed) ? parsed.filter(Boolean) : []; } catch(e) { return []; }
 };
 
 export const saveReceipts = (receipts: Receipt[]) => {
@@ -221,7 +221,7 @@ export const saveReceipts = (receipts: Receipt[]) => {
 export const getSettlements = (): Settlement[] => {
   initializeStorage();
   const data = localStorage.getItem(STORAGE_KEYS.SETTLEMENTS);
-  return data ? JSON.parse(data) : [];
+  try { const parsed = data ? JSON.parse(data) : []; return Array.isArray(parsed) ? parsed.filter(Boolean) : []; } catch(e) { return []; }
 };
 
 export const saveSettlements = (settlements: Settlement[]) => {
@@ -231,7 +231,7 @@ export const saveSettlements = (settlements: Settlement[]) => {
 export const getRecentMembers = (): string[] => {
   initializeStorage();
   const data = localStorage.getItem(STORAGE_KEYS.RECENT_MEMBERS);
-  return data ? JSON.parse(data) : [];
+  try { const parsed = data ? JSON.parse(data) : []; return Array.isArray(parsed) ? parsed.filter(Boolean) : []; } catch(e) { return []; }
 };
 
 export const saveRecentMembers = (members: string[]) => {
@@ -241,7 +241,8 @@ export const saveRecentMembers = (members: string[]) => {
 export const getCachedRates = (): CachedRates | null => {
   const data = localStorage.getItem(STORAGE_KEYS.RATES);
   if (!data) return null;
-  const parsed = JSON.parse(data) as CachedRates;
+  let parsed: CachedRates;
+  try { parsed = JSON.parse(data) as CachedRates; } catch (e) { return null; }
 
   // Merge street rates if enabled
   const settings = getSettings();
@@ -281,7 +282,7 @@ export const saveGeminiKey = (key: string): void => {
 export const getSettings = (): AppSettings => {
   initializeStorage();
   const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-  return data ? JSON.parse(data) : DEFAULT_SETTINGS;
+  try { return data ? JSON.parse(data) : DEFAULT_SETTINGS; } catch(e) { return DEFAULT_SETTINGS; }
 };
 
 export const saveSettings = (settings: AppSettings) => {

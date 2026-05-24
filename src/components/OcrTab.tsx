@@ -53,7 +53,7 @@ export const OcrTab: React.FC<OcrTabProps> = ({
     if (selectedGroup && selectedGroup.members.length > 0) {
       const settings = getSettings();
       const activeUser = settings.userName || '';
-      const meUser = selectedGroup.members.find(m => m.name.toLowerCase() === activeUser.toLowerCase());
+      const meUser = selectedGroup.members.find(m => String(m.name || '').toLowerCase() === String(activeUser || '').toLowerCase());
       const isMemberOfCurrentGroup = selectedGroup.members.some(m => m.id === paidByMemberId);
       
       if (!paidByMemberId || !isMemberOfCurrentGroup) {
@@ -68,7 +68,7 @@ export const OcrTab: React.FC<OcrTabProps> = ({
 
       setItems(prev => prev.map(it => ({
         ...it,
-        assignedTo: (it.assignedTo.length === 0 && it.price > 0) ? selectedGroup.members.map(m => m.id) : it.assignedTo
+        assignedTo: ((it.assignedTo || []).length === 0 && it.price > 0) ? selectedGroup.members.map(m => m.id) : (it.assignedTo || [])
       })));
     }
   }, [selectedGroup]);

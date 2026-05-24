@@ -21,7 +21,7 @@ export function getCurrencyInfo(currencyCode: string) {
 
   if (exceptions[currencyCode]) return exceptions[currencyCode];
 
-  const countryCode = currencyCode.substring(0, 2).toLowerCase();
+  const countryCode = String(currencyCode || '').substring(0, 2).toLowerCase();
   let name = currencyCode.toUpperCase();
   try {
     const displayNames = new Intl.DisplayNames(['en'], { type: 'region' });
