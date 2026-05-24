@@ -475,8 +475,22 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({
                     <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--electric-mint-dim)', color: 'var(--electric-mint)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                        <CheckCircle size={32} />
                     </div>
-                    <h3 style={{ fontSize: '24px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '4px' }}>RM {viewingSettlement.totalMYR.toFixed(2)}</h3>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Total Reconciled on {new Date(viewingSettlement.date).toLocaleDateString()}</p>
+                    <h3 style={{ fontSize: '24px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                      {(() => {
+                        const rates = getCachedRates()?.rates || { MYR: 1 };
+                        const rate = resolvedViewingCurrency === 'MYR' ? 1 : (rates[resolvedViewingCurrency] || 1);
+                        const total = viewingSettlement.totalMYR * rate;
+                        return resolvedViewingCurrency === 'MYR' ? `RM ${total.toFixed(2)}` : `${total.toFixed(2)} ${resolvedViewingCurrency}`;
+                      })()}
+                    </h3>
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      {resolvedViewingCurrency !== 'MYR' && (
+                        <span style={{ display: 'block', marginBottom: '2px', opacity: 0.8 }}>
+                          (RM {viewingSettlement.totalMYR.toFixed(2)} base equivalent)
+                        </span>
+                      )}
+                      Total Reconciled on {new Date(viewingSettlement.date).toLocaleDateString()}
+                    </p>
                   </div>
 
                   <h3 className="title-small" style={{ margin: '24px 0 12px', color: 'var(--electric-mint)' }}>Who Paid Whom</h3>
